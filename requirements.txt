@@ -3,6 +3,3 @@ pandas
 numpy
 pillow
 gtts
-SpeechRecognition
-pyttsx3
-pygame
