@@ -20,20 +20,20 @@ try:
     import pygame
 except ImportError:
     pygame = None
-
+ 
 # ==============================
 # DATABASE SETUP (SAFE VERSION)
 # ==============================
 conn = sqlite3.connect("agriculture.db", check_same_thread=False)
 cursor = conn.cursor()
-
+ 
 try:
     cursor.execute("SELECT medicine FROM predictions LIMIT 1")
     cursor.execute("ALTER TABLE predictions RENAME COLUMN medicine TO treatment")
     conn.commit()
 except sqlite3.OperationalError:
     pass
-
+ 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS predictions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS predictions (
     language TEXT
 )
 """)
-
+ 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS chat_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS chat_history (
 )
 """)
 conn.commit()
-
+ 
 # ==============================
 # SAMPLE CROP DATA
 # ==============================
@@ -64,7 +64,7 @@ crop_data = pd.DataFrame({
     "Potassium": [40, 30, 35, 25, 50, 35, 40, 30, 55, 30, 28, 28],
     "Climate": ["Wet", "Cool", "Moderate", "Warm", "Wet", "Wet", "Wet", "Wet", "Wet", "Moderate", "Moderate", "Cool"]
 })
-
+ 
 def speak(text, language="English"):
     def run():
         try:
@@ -93,7 +93,7 @@ def speak(text, language="English"):
         except Exception:
             pass
     threading.Thread(target=run, daemon=True).start()
-
+ 
 # ==============================
 # CHATBOT KNOWLEDGE BASE
 # ==============================
@@ -171,7 +171,7 @@ faq_knowledge = {
         "Tamil": "பிரதான் மந்திரி பசல் பீமா யோஜனா (PMFBY) இயற்கை பேரிடர்களால் ஏற்படும் பயிர் இழப்பை ஈடுசெய்கிறது. காரிஃப் பயிருக்கு 2%, ரபி பயிருக்கு 1.5% பிரீமியம்."
     }
 }
-
+ 
 def chatbot_response(question, language="English"):
     q = question.lower()
     for key, value in faq_knowledge.items():
@@ -211,7 +211,7 @@ def chatbot_response(question, language="English"):
     if language == "Tamil":
         return "பயிர்கள், நோய்கள், உரங்கள், நீர்ப்பாசனம், பூச்சி கட்டுப்பாடு, மண் ஆரோக்கியம், விதைகள், சந்தை, கடன்கள் மற்றும் மானியங்கள் பற்றி உதவ முடியும். குறிப்பிட்ட கேள்வி கேளுங்கள்."
     return "I can help you with crops, diseases, fertilizers, irrigation, pest control, soil health, seeds, market, loans, and subsidies. Please ask a specific question."
-
+ 
 # ==============================
 # OFFLINE DISEASE KNOWLEDGE
 # ==============================
@@ -333,7 +333,7 @@ Prevention: Prune for air flow, avoid overhead watering.
         "Tamil": "செடி ஆரோக்கியமாக உள்ளது. பராமரிப்பு தொடரவும்."
     }
 }
-
+ 
 # ==============================
 # IMAGE VALIDATION + PREDICTION
 # ==============================
@@ -352,7 +352,7 @@ def predict_disease(image):
         return "Healthy"
     else:
         return "Leaf Spot"
-
+ 
 # ==============================
 # STREAMLIT UI
 # ==============================
@@ -366,11 +366,14 @@ div.stButton > button[kind="primary"] {
 }
 </style>
 """, unsafe_allow_html=True)
-image_path = r"D:\Python\AI-Former-Chatbot\farm.jpg"
-
-with open(image_path, "rb") as f:
-    img = base64.b64encode(f.read()).decode()
-
+ 
+# Image is loaded from the same folder as app.py (works locally and on Streamlit Cloud)
+image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "farm.jpg")
+img = ""
+if os.path.exists(image_path):
+    with open(image_path, "rb") as f:
+        img = base64.b64encode(f.read()).decode()
+ 
 st.markdown(f"""
 <div style="
     background-image: url('data:image/jpg;base64,{img}');
@@ -388,17 +391,17 @@ st.markdown(f"""
     </h1>
 </div>
 """, unsafe_allow_html=True)
-
-
+ 
+ 
 if "menu" not in st.session_state:
     st.session_state.menu = "Farmer Chatbot"
-
+ 
 st.sidebar.title("📋 Menu")
 if st.sidebar.button("💬 Farmer Chatbot", use_container_width=True, type="primary" if st.session_state.menu == "Farmer Chatbot" else "secondary"):
     st.session_state.menu = "Farmer Chatbot"
 if st.sidebar.button("📷 Plant Disease Prediction", use_container_width=True, type="primary" if st.session_state.menu == "Plant Disease Prediction" else "secondary"):
     st.session_state.menu = "Plant Disease Prediction"
-if st.sidebar.button("🌱 Fertilizer Dosage", use_container_width=True,type="primary" if st.session_state.menu == "Fertilizer Dosage Prediction" else "secondary"):
+if st.sidebar.button("🌱 Fertilizer Dosage", use_container_width=True, type="primary" if st.session_state.menu == "Fertilizer Dosage Prediction" else "secondary"):
     st.session_state.menu = "Fertilizer Dosage Prediction"
 if st.sidebar.button("🌾 Crop Nutrient Info", use_container_width=True, type="primary" if st.session_state.menu == "Crop Nutrient Prediction" else "secondary"):
     st.session_state.menu = "Crop Nutrient Prediction"
@@ -406,24 +409,24 @@ if st.sidebar.button("⚠ Deficiency Detection", use_container_width=True, type=
     st.session_state.menu = "Crop Deficiency Detection"
 if st.sidebar.button("🌍 Crop Selection for Land", use_container_width=True, type="primary" if st.session_state.menu == "Crop Selection Assistance" else "secondary"):
     st.session_state.menu = "Crop Selection Assistance"
-
+ 
 menu = st.session_state.menu
-
+ 
 # ======================================
 # FARMER CHATBOT
 # ======================================
 if menu == "Farmer Chatbot":
     st.header("💬 Ask Agriculture Questions")
-
+ 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     if "voice_text" not in st.session_state:
         st.session_state.voice_text = ""
     if "pending_voice" not in st.session_state:
         st.session_state.pending_voice = False
-
+ 
     chat_language = st.selectbox("🌐 Select Language / மொழி தேர்வு", ["English", "Tamil"], key="chat_language")
-
+ 
     # Auto-process voice before rendering input so message stays visible
     if st.session_state.pending_voice and st.session_state.voice_text:
         question = st.session_state.voice_text
@@ -434,7 +437,7 @@ if menu == "Farmer Chatbot":
         speak(response, chat_language)
         st.session_state.pending_voice = False
         st.session_state.voice_text = ""
-
+ 
     col1, col2 = st.columns([4, 1])
     with col1:
         label = "உங்கள் கேள்வியை தட்டச்சு செய்யுங்கள்:" if chat_language == "Tamil" else "Type your question:"
@@ -442,55 +445,55 @@ if menu == "Farmer Chatbot":
     with col2:
         st.write("")
         st.write("")
-        if st.button("🎤 Speak"):
-            recognizer = sr.Recognizer()
-            with sr.Microphone() as source:
-                st.info("🎙️ Listening... Speak now!")
-                recognizer.adjust_for_ambient_noise(source, duration=1)
-                try:
+        # Speak button only appears when the speech library is installed (local use)
+        if sr is not None and st.button("🎤 Speak"):
+            try:
+                recognizer = sr.Recognizer()
+                with sr.Microphone() as source:
+                    st.info("🎙️ Listening... Speak now!")
+                    recognizer.adjust_for_ambient_noise(source, duration=1)
                     audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
-                    lang_code = "ta-IN" if chat_language == "Tamil" else "en-IN"
-                    text = recognizer.recognize_google(audio, language=lang_code)
-                    st.session_state.voice_text = text
-                    st.session_state.pending_voice = True
-                    st.rerun()
-                except sr.WaitTimeoutError:
-                    st.warning("No speech detected. Please try again.")
-                except sr.UnknownValueError:
-                    st.warning("Could not understand. Please speak clearly.")
-                except Exception as e:
-                    st.error(f"Microphone error: {e}")
-
+                lang_code = "ta-IN" if chat_language == "Tamil" else "en-IN"
+                text = recognizer.recognize_google(audio, language=lang_code)
+                st.session_state.voice_text = text
+                st.session_state.pending_voice = True
+                st.rerun()
+            except sr.WaitTimeoutError:
+                st.warning("No speech detected. Please try again.")
+            except sr.UnknownValueError:
+                st.warning("Could not understand. Please speak clearly.")
+            except Exception as e:
+                st.error(f"Microphone error: {e}")
+ 
     if st.button("Ask") and user_question:
         response = chatbot_response(user_question, chat_language)
         st.session_state.chat_history.append({"question": user_question, "answer": response})
         cursor.execute("INSERT INTO chat_history (question, answer) VALUES (?, ?)", (user_question, response))
         conn.commit()
         speak(response, chat_language)
-
+ 
     if st.session_state.chat_history:
         for chat in reversed(st.session_state.chat_history[-5:]):
             st.success(f"🧑🌾 You: {chat['question']}")
             st.info(f"🤖 Bot: {chat['answer']}")
             st.divider()
-
+ 
 # ======================================
 # PLANT DISEASE
 # ======================================
 elif menu == "Plant Disease Prediction":
     st.header("📷 Upload Plant Leaf Image")
-
+ 
     farmer_name = st.text_input("Farmer Name")
     language = st.selectbox("Select Language", ["English", "Tamil"])
-    
+ 
     image = None
-    
+ 
     uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
-    
+ 
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-   
-
+ 
     if image:
         st.image(image, use_container_width=True)
         if st.button("Predict Disease"):
@@ -504,15 +507,13 @@ elif menu == "Plant Disease Prediction":
                 cursor.execute("INSERT INTO predictions (farmer_name, disease, treatment, language) VALUES (?, ?, ?, ?)",
                                (farmer_name, disease, treatment, language))
                 conn.commit()
-
+ 
 # ======================================
 # FERTILIZER
 # ======================================
 elif menu == "Fertilizer Dosage Prediction":
     st.header("🌱 Fertilizer Dosage Prediction")
-    
-    st.session_state.menu = "Fertilizer Dosage Prediction"
-
+ 
     crop = st.selectbox("Select Crop", crop_data["Crop"].unique())
     col1, col2 = st.columns(2)
     with col1:
@@ -523,13 +524,13 @@ elif menu == "Fertilizer Dosage Prediction":
         moisture = st.number_input("Soil Moisture Level (%)", 0, 100, 40)
         temperature = st.number_input("Temperature (°C)", 0, 60, 28)
         rainfall = st.number_input("Recent Rainfall (mm)", 0, 500, 50)
-
+ 
     if st.button("Calculate"):
         crop_info = crop_data[crop_data["Crop"] == crop].iloc[0]
         need_n = max(0, crop_info["Nitrogen"] - n)
         need_p = max(0, crop_info["Phosphorus"] - p)
         need_k = max(0, crop_info["Potassium"] - k)
-
+ 
         effective_moisture = moisture + (rainfall * 0.3)
         if effective_moisture < 30:
             water_msg = "💧 Soil is very dry. Give water for **4 hours** today."
@@ -539,24 +540,24 @@ elif menu == "Fertilizer Dosage Prediction":
             water_msg = "💧 Soil moisture is moderate. Give water for **1.5 hours** every 2 days."
         else:
             water_msg = "✅ Soil has enough moisture. No irrigation needed today."
-
+ 
         if temperature > 35:
             fert_tip = "⚠️ High temperature detected. Apply fertilizers in early morning or evening to avoid evaporation loss."
         elif temperature < 15:
             fert_tip = "❄️ Low temperature detected. Nutrient absorption is slow. Reduce fertilizer dose by 20%."
         else:
             fert_tip = "✅ Temperature is ideal for fertilizer application."
-
+ 
         st.subheader("📊 Fertilizer Recommendation")
         col_a, col_b, col_c = st.columns(3)
         col_a.metric("Nitrogen Needed", f"{need_n} kg/ha")
         col_b.metric("Phosphorus Needed", f"{need_p} kg/ha")
         col_c.metric("Potassium Needed", f"{need_k} kg/ha")
-
+ 
         st.subheader("💧 Irrigation Advice")
         st.info(water_msg)
         st.warning(fert_tip)
-
+ 
 # ======================================
 # CROP NUTRIENT
 # ======================================
@@ -564,14 +565,13 @@ elif menu == "Crop Nutrient Prediction":
     st.header("🌾 Crop Nutrient Information")
     crop = st.selectbox("Select Crop", crop_data["Crop"].unique())
     st.table(crop_data[crop_data["Crop"] == crop])
-
+ 
 # ======================================
 # DEFICIENCY
 # ======================================
 elif menu == "Crop Deficiency Detection":
     st.header("⚠ Crop Deficiency Detection")
-    
-    st.session_state.menu = "Fertilizer Dosage Prediction"
+ 
     nitrogen = st.number_input("Nitrogen Level", 0)
     phosphorus = st.number_input("Phosphorus Level", 0)
     potassium = st.number_input("Potassium Level", 0)
@@ -584,13 +584,13 @@ elif menu == "Crop Deficiency Detection":
             st.warning("Potassium Deficiency")
         if nitrogen >= 50 and phosphorus >= 30 and potassium >= 20:
             st.success("Nutrient Levels are Normal")
-
+ 
 # ======================================
 # CROP SELECTION FOR LAND
 # ======================================
 elif menu == "Crop Selection Assistance":
     st.header("🌍 Crop Selection for Your Land")
-
+ 
     col1, col2 = st.columns(2)
     with col1:
         soil_type = st.selectbox("Soil Type", ["Clay", "Sandy", "Loamy", "Silty", "Black", "Red"])
@@ -600,7 +600,7 @@ elif menu == "Crop Selection Assistance":
         fertilizer_usage = st.selectbox("Fertilizer Usage", ["Low", "Medium", "High"])
         climate = st.selectbox("Climate", crop_data["Climate"].unique())
         farming_exp = st.selectbox("Farming Experience", ["Beginner", "Intermediate", "Expert"])
-
+ 
     yield_data = {
         "Rice": 2.5, "Wheat": 2.0, "Maize": 3.0, "Tomato": 8.0,
         "Sugarcane": 35.0, "Jute": 2.2, "Tea": 1.5, "Coconut": 3.5,
@@ -614,16 +614,16 @@ elif menu == "Crop Selection Assistance":
         "Black": ["Cotton", "Sugarcane", "Soybean", "Wheat"],
         "Red": ["Maize", "Tomato", "Tea", "Coconut"]
     }
-
+ 
     if st.button("🌾 Get Crop Recommendation"):
         climate_crops = crop_data[crop_data["Climate"] == climate]["Crop"].tolist()
         matched_crops = [c for c in climate_crops if c in soil_crops.get(soil_type, [])]
         if not matched_crops:
             matched_crops = climate_crops[:3]
-
+ 
         fert_multiplier = {"Low": 0.7, "Medium": 1.0, "High": 1.2}[fertilizer_usage]
         exp_multiplier = {"Beginner": 0.8, "Intermediate": 1.0, "Expert": 1.15}[farming_exp]
-
+ 
         st.subheader("✅ Recommended Crops for Your Land")
         for crop in matched_crops:
             adjusted_yield = round(yield_data.get(crop, 2.0) * fert_multiplier * exp_multiplier, 2)
@@ -641,19 +641,19 @@ elif menu == "Crop Selection Assistance":
                     st.info(f"🌧️ High rainfall area. Ensure proper drainage for {crop}.")
                 else:
                     st.success(f"✅ Rainfall is suitable for {crop} cultivation.")
-
+ 
 # ======================================
 # VIEW RECORDS
 # ======================================
 st.sidebar.subheader("📊 View Records")
-
+ 
 if st.sidebar.button("Show Disease Predictions"):
     data = pd.read_sql_query("SELECT * FROM predictions ORDER BY id DESC LIMIT 10", conn)
     if not data.empty:
         st.sidebar.dataframe(data)
     else:
         st.sidebar.info("No disease predictions yet.")
-
+ 
 if st.sidebar.button("Show Chat History"):
     chat_data = pd.read_sql_query("SELECT question, answer, timestamp FROM chat_history ORDER BY id DESC LIMIT 10", conn)
     if not chat_data.empty:
@@ -664,5 +664,3 @@ if st.sidebar.button("Show Chat History"):
             st.sidebar.divider()
     else:
         st.sidebar.info("No chat history yet.")
-
-
