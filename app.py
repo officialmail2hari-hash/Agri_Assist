@@ -4,13 +4,22 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 import os
-import speech_recognition as sr
-import pyttsx3
 import threading
 from gtts import gTTS
 import tempfile
-import pygame
 import base64
+try:
+    import speech_recognition as sr
+except ImportError:
+    sr = None
+try:
+    import pyttsx3
+except ImportError:
+    pyttsx3 = None
+try:
+    import pygame
+except ImportError:
+    pygame = None
 
 # ==============================
 # DATABASE SETUP (SAFE VERSION)
@@ -58,8 +67,10 @@ crop_data = pd.DataFrame({
 
 def speak(text, language="English"):
     def run():
-        if language == "Tamil":
-            try:
+        try:
+            if language == "Tamil":
+                if pygame is None:
+                    return
                 tts = gTTS(text=text, lang="ta")
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
                     tmp_path = f.name
@@ -71,14 +82,16 @@ def speak(text, language="English"):
                     pygame.time.Clock().tick(10)
                 pygame.mixer.music.unload()
                 os.remove(tmp_path)
-            except Exception:
-                pass
-        else:
-            engine = pyttsx3.init()
-            engine.setProperty("rate", 150)
-            engine.setProperty("volume", 1.0)
-            engine.say(text)
-            engine.runAndWait()
+            else:
+                if pyttsx3 is None:
+                    return
+                engine = pyttsx3.init()
+                engine.setProperty("rate", 150)
+                engine.setProperty("volume", 1.0)
+                engine.say(text)
+                engine.runAndWait()
+        except Exception:
+            pass
     threading.Thread(target=run, daemon=True).start()
 
 # ==============================
